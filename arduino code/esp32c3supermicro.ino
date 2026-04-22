@@ -21,9 +21,22 @@ int frameDelay = 1000 / framerate;
 unsigned long msTimeTrack;
 int frameTrackInt = frameDelay;
 int secTrackInt = 1000;
+int startButtonState = 0;
+int startButtonPin = 0;
+int stopButtonState = 0;
+int stopButtonPin = 1;
+int timecodeRunning = 0;
+int recordDisplay = 0;
+int recBlinkMs = 0;
 
 void setup() {
     Serial.begin(115200);
+    delay(1000);
+    Serial.println("Booted");
+
+    //set pin modes
+    pinMode(startButtonPin, INPUT);
+    pinMode(stopButtonPin, INPUT);
 
 
     // combine TC values
@@ -61,7 +74,72 @@ void loop() {
 
     //declaring stuff
     msTimeTrack = millis();
+    startButtonState = digitalRead(startButtonPin);
+    stopButtonState = digitalRead(stopButtonPin);
 
+
+    //buttons
+    if (startButtonState == HIGH) {
+      timecodeRunning = true;
+    }
+
+    if (stopButtonState == HIGH) {
+      timecodeRunning = false;
+      framesTC = 0;
+      secondsTC = 0;
+      minutesTC = 0;
+      hoursTC = 0;
+    }
+
+
+
+    if (timecodeRunning == true) {
+      updateTimeCodeLogic();
+      recordDisplayLogic();
+    } else {
+      recordDisplay = false;
+    }
+
+    if (msTimeTrack >= secTrackInt) {
+      secTrackInt = secTrackInt + 1000;
+    }
+
+    //Just updates the timecode string using the update timecode function
+    updateTimeCodeString();
+    
+    // updating the displa stuff
+    display.clearDisplay();  // Clear buffer
+    display.setTextSize(1.5);  // Text size
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(10, 8);
+    display.println(fullTimeCodeString);
+    display.setTextSize(2);
+    display.setCursor(100, 10);
+    display.println(framerate);
+    if (recordDisplay == true) {
+      display.setTextSize(1);
+      display.setCursor(10, 22);
+      display.println("Recording");
+    }
+    
+    display.display(); // Show text on screen
+
+
+}
+
+void recordDisplayLogic() {
+    if (msTimeTrack - recBlinkMs >= 1000) {
+      recBlinkMs = msTimeTrack;
+      if (recordDisplay == true) {
+        recordDisplay = false;
+      } else if (recordDisplay == false) {
+        recordDisplay = true;
+      }
+    } 
+
+}
+
+void updateTimeCodeLogic() {
     //uses millis as a reference for frames (but it do a lotta rounding cuz integers)
     if (framesTC < framerate) {
       
@@ -77,7 +155,8 @@ void loop() {
     //links seconds to millis, I think this would be more accurate
     if (secondsTC < 60 && msTimeTrack >= secTrackInt) {
       secondsTC++;
-      secTrackInt = secTrackInt + 1000;
+      //secTrackInt = secTrackInt + 1000;
+      Serial.println(secondsTC);
     } else if (secondsTC == 60) {
       secondsTC = 0;
       minutesTC++;
@@ -88,25 +167,11 @@ void loop() {
       minutesTC = 0;
       hoursTC++;
     }
-
-    //Just updates the timecode using the update timecode function
-    updateTimeCode();
     
-    // updating the displa stuff
-    display.clearDisplay();  // Clear buffer
-    display.setTextSize(1.5);  // Text size
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(10, 10);
-    display.println(fullTimeCodeString);
-    display.setTextSize(2);
-    display.setCursor(100, 10);
-    display.println(framerate);
-    display.display(); // Show text on screen
-
 
 }
 
-int updateTimeCode() {
+void updateTimeCodeString() {
     //updates timecode stuff
 
     //hours updates
@@ -148,6 +213,5 @@ int updateTimeCode() {
       fullTimeCodeString = fullTimeCodeString + framesTC;
     }
 
-    //useless return lol
-    return 1;
+
 }
