@@ -1,6 +1,11 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+
+//defines the motion tracker
+Adafruit_MPU6050 mpu;
 
 // Define OLED screen size
 #define SCREEN_WIDTH 128
@@ -28,6 +33,8 @@ int stopButtonPin = 1;
 int timecodeRunning = 0;
 int recordDisplay = 0;
 int recBlinkMs = 0;
+int frameTotal = 0;
+int gravityConst = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -38,6 +45,8 @@ void setup() {
     pinMode(startButtonPin, INPUT);
     pinMode(stopButtonPin, INPUT);
 
+    //define stuff
+    gravityConst = 11;
 
     // combine TC values
 
@@ -53,6 +62,26 @@ void setup() {
         Serial.println("SSD1306 allocation failed");
         for (;;);
     }
+
+    //initialize motion tracker
+    if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("MPU6050 Found!");
+
+  // set accelerometer range to +-8G
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+
+  // set gyro range to +- 500 deg/s
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+
+  // set filter bandwidth to 21 Hz
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+
+  delay(100);
 
     display.clearDisplay();  // Clear buffer
     display.setTextSize(2);  // Text size
@@ -77,6 +106,7 @@ void loop() {
     startButtonState = digitalRead(startButtonPin);
     stopButtonState = digitalRead(stopButtonPin);
 
+    
 
     //buttons
     if (startButtonState == HIGH) {
@@ -89,6 +119,7 @@ void loop() {
       secondsTC = 0;
       minutesTC = 0;
       hoursTC = 0;
+      frameTotal = 0;
     }
 
 
@@ -145,7 +176,10 @@ void updateTimeCodeLogic() {
       
       if (msTimeTrack >= frameTrackInt) {
       framesTC++;
+      frameTotal++;
       frameTrackInt = frameTrackInt + frameDelay;
+      //prints motion data to console
+      printMotionData();
       }
       
     } else if (framesTC == framerate) {
@@ -156,7 +190,7 @@ void updateTimeCodeLogic() {
     if (secondsTC < 60 && msTimeTrack >= secTrackInt) {
       secondsTC++;
       //secTrackInt = secTrackInt + 1000;
-      Serial.println(secondsTC);
+      //Serial.println(secondsTC);
     } else if (secondsTC == 60) {
       secondsTC = 0;
       minutesTC++;
@@ -214,4 +248,34 @@ void updateTimeCodeString() {
     }
 
 
+}
+
+void printMotionData() {
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  //Serial.print(frameTotal);
+  //Serial.print("Acceleration X: ");
+  Serial.println(a.acceleration.x);
+  //Serial.print(", Y: ");
+  Serial.println(a.acceleration.y);
+  //Serial.print(", Z: ");
+  if (a.acceleration.z < -gravityConst) {
+    Serial.println(a.acceleration.z + gravityConst);
+  } else {
+    Serial.println(a.acceleration.z - gravityConst);
+  }
+  //Serial.println(" m/s^2");
+
+  //Serial.print("Rotation X: ");
+  Serial.println(g.gyro.x);
+  //Serial.print(", Y: ");
+  Serial.println(g.gyro.y);
+  //Serial.print(", Z: ");
+  Serial.println(g.gyro.z);
+  //Serial.println(" rad/s");
+  //Serial.println();
+  //Serial.println();
+  //Serial.println();
+  //Serial.println();
+  
 }
