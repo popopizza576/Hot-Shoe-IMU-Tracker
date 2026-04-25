@@ -2,7 +2,7 @@
 My hot shoe IMU Tracker is an open-source camera accessory aimed at helping with compositing and camera tracking for CGI with green screens in non-studio environments. It could be used with software like Unreal Engine (maybe if i learn how to use it) or Blender or other computer graphics engines
 # This is NOT READY FOR USE YET, STILL WAY EARLY IN DEVELOPMENT
 
-#USAGE
+# USAGE
 So... you may ask yourself how do I use this thing? Well, in its current implementation, here's how you need to set up your project:
 
 Get a breadboard, and wire up an I2C OLED 0.91 inch screen, MPU 6050, and 3 buttons to an ESP32, then flash the firmware to it
