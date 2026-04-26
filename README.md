@@ -5,9 +5,9 @@ My hot shoe IMU Tracker is an open-source camera accessory aimed at helping with
 # USAGE
 So... you may ask yourself how do I use this thing? Well, in its current implementation, here's how you need to set up your project:
 
-Get a breadboard, and wire up an I2C OLED 0.91 inch screen, MPU 6050, and 3 buttons to an ESP32, then flash the firmware to it
+Get a breadboard, and wire up an I2C OLED 0.91 inch screen, MPU 6050, SD card reader, and 3 buttons to an ESP32, then flash the firmware to it
 
-After that, you can record some motion data, which will print all of the values to the console log, which you will then need to copy and paste into a .txt file
+After that, you can record some motion data, which will print all of the values to a file without an extension in the root of the SD card. Make sure to format to FAT32, btw
 
 Once you've done that, you can find the file path and paste it into the blender script where it says to put your file path, run the script, and that's where I'm at
 
