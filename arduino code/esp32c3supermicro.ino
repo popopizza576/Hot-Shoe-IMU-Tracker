@@ -3,13 +3,27 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+//file system
+#include "FS.h"
+//sd card
+#include "SD.h"
+//serial
+#include "SPI.h"
 
 //defines the motion tracker
 Adafruit_MPU6050 mpu;
 
+//defines file (test)
+File root;
+File currentFile;
+
 // Define OLED screen size
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
+#define SD_MOSI     6
+#define SD_MISO     5
+#define SD_SCLK     4
+#define SD_CS       7
 
 // Initialize OLED display (I2C address 0x3C)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -20,7 +34,7 @@ int minutesTC = 00;
 int secondsTC = 00;
 int framesTC = 00;
 String fullTimeCodeString = "placeholder";
-int framerate = 24;
+int framerate = 100;
 int commonFramerates[] = {24, 30, 60, 120};
 int frameDelay = 1000 / framerate;
 unsigned long msTimeTrack;
@@ -47,6 +61,8 @@ float zAcceleration = 0;
 float xGyro = 0;
 float yGyro = 0;
 float zGyro = 0;
+int foundFile = 0;
+int lazyCounter = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -74,6 +90,19 @@ void setup() {
         Serial.println("SSD1306 allocation failed");
         for (;;);
     }
+
+  SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+  if (!SD.begin(SD_CS)) 
+  {
+    Serial.println("SD Card MOUNT FAIL");
+  } 
+  
+
+
+
+
+
+
 
     //initialize motion tracker
     if (!mpu.begin()) {
@@ -123,7 +152,9 @@ void loop() {
 
     //buttons
     if (startButtonState == HIGH) {
+      delay(10);
       timecodeRunning = true;
+      findFileName(root);
     }
 
     if (stopButtonState == HIGH) {
@@ -133,6 +164,8 @@ void loop() {
       minutesTC = 0;
       hoursTC = 0;
       frameTotal = 0;
+      currentFile.close();
+      foundFile = false;
     }
 
 
@@ -279,22 +312,30 @@ void printMotionData() {
   //Serial.print(frameTotal);
   //Serial.print("Acceleration X: ");
   Serial.println(xAcceleration);
+  currentFile.println(xAcceleration);
   //Serial.print(", Y: ");
   Serial.println(yAcceleration);
+  currentFile.println(yAcceleration);
   //Serial.print(", Z: ");
   if (a.acceleration.z < -gravityConst) {
     Serial.println(zAcceleration + gravityConst);
+    currentFile.println(zAcceleration + gravityConst);
   } else {
     Serial.println(zAcceleration - gravityConst);
+    currentFile.println(zAcceleration - gravityConst);
   }
+
   //Serial.println(" m/s^2");
 
   //Serial.print("Rotation X: ");
   Serial.println(xGyro - gyroXOffset);
+  currentFile.println(xGyro - gyroXOffset);
   //Serial.print(", Y: ");
   Serial.println(yGyro - gyroYOffset);
+  currentFile.println(yGyro - gyroYOffset);
   //Serial.print(", Z: ");
   Serial.println(zGyro - gyroZOffset);
+  currentFile.println(zGyro - gyroZOffset);
   //Serial.println(" rad/s");
   //Serial.println();
   //Serial.println();
@@ -370,3 +411,18 @@ gyroZOffset = sumZ/numPoints;
 
 normalScreen = true;
 }
+
+void findFileName (File dir) {
+  lazyCounter = 0;
+  while (true) {
+    String filename = "/" + String(lazyCounter);
+
+    if (!SD.exists(filename)) {
+      currentFile = SD.open(filename, FILE_WRITE);
+      break;
+    }
+
+    lazyCounter++;
+  }
+
+  }
