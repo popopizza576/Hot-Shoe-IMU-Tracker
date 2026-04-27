@@ -14,7 +14,6 @@
 Adafruit_MPU6050 mpu;
 
 //defines file (test)
-File root;
 File currentFile;
 
 // Define OLED screen size
@@ -34,7 +33,7 @@ int minutesTC = 00;
 int secondsTC = 00;
 int framesTC = 00;
 String fullTimeCodeString = "placeholder";
-int framerate = 100;
+int framerate = 24;
 int commonFramerates[] = {24, 30, 60, 120};
 int frameDelay = 1000 / framerate;
 unsigned long msTimeTrack;
@@ -63,6 +62,10 @@ float yGyro = 0;
 float zGyro = 0;
 int foundFile = 0;
 int lazyCounter = 0;
+int frameCorrectionInteger = 0;
+unsigned long msSinceOn = 0;
+unsigned long elapsed = 0;
+String csvString;
 
 void setup() {
     Serial.begin(115200);
@@ -144,6 +147,7 @@ void loop() {
 
     //declaring stuff
     msTimeTrack = millis();
+    elapsed = msTimeTrack - msSinceOn;
     startButtonState = digitalRead(startButtonPin);
     stopButtonState = digitalRead(stopButtonPin);
     calibrateButtonState = digitalRead(calibrateButtonPin);
@@ -152,9 +156,14 @@ void loop() {
 
     //buttons
     if (startButtonState == HIGH) {
-      delay(10);
+      delay(100);
+      msSinceOn = msTimeTrack;
+      elapsed = msTimeTrack - msSinceOn;
+      secTrackInt = elapsed;
       timecodeRunning = true;
-      findFileName(root);
+      Serial.println(msSinceOn);
+      findFileName();
+
     }
 
     if (stopButtonState == HIGH) {
@@ -164,6 +173,8 @@ void loop() {
       minutesTC = 0;
       hoursTC = 0;
       frameTotal = 0;
+      frameTrackInt = frameDelay;
+      frameCorrectionInteger = 0;
       currentFile.close();
       foundFile = false;
     }
@@ -177,9 +188,6 @@ void loop() {
       recordDisplay = false;
     }
 
-    if (msTimeTrack >= secTrackInt) {
-      secTrackInt = secTrackInt + 1000;
-    }
 
     //Just updates the timecode string using the update timecode function
     updateTimeCodeString();
@@ -217,29 +225,47 @@ void recordDisplayLogic() {
 
 void updateTimeCodeLogic() {
     //uses millis as a reference for frames (but it do a lotta rounding cuz integers)
+
     if (framesTC < framerate) {
       
-      if (msTimeTrack >= frameTrackInt) {
+      if (elapsed >= frameTrackInt) {
       framesTC++;
       frameTotal++;
-      frameTrackInt = frameTrackInt + frameDelay;
+
+      if (framesTC < framerate) {
+        frameTrackInt = frameTrackInt + frameDelay;
+      }
+
+      if (frameCorrectionInteger < framerate - 1) {
+        frameCorrectionInteger++;
+      } else {
+        frameCorrectionInteger = 0;
+        frameTrackInt = frameTrackInt + (1000 % framerate);
+        Serial.println(frameTrackInt);
+        Serial.println(elapsed);
+      }
+
       //prints motion data to console
       printMotionData();
+      Serial.println(fullTimeCodeString);
       }
       
-    } else if (framesTC == framerate) {
+    } else if (framesTC == framerate && elapsed >= frameTrackInt && frameCorrectionInteger == 0) {
       framesTC = 0;
     }
 
+
     //links seconds to millis, I think this would be more accurate
-    if (secondsTC < 60 && msTimeTrack >= secTrackInt) {
+    if (elapsed - secTrackInt >= 1000) {
+      secTrackInt += 1000;
       secondsTC++;
-      //secTrackInt = secTrackInt + 1000;
+      frameTrackInt = frameTrackInt + frameDelay;
       //Serial.println(secondsTC);
-    } else if (secondsTC == 60) {
-      secondsTC = 0;
-      minutesTC++;
-    }
+        if (secondsTC == 60) {
+          secondsTC = 0;
+          minutesTC++;
+      }
+    } 
     
     //my other if statement :p
     if (minutesTC == 60) {
@@ -307,40 +333,13 @@ void mpu6050Update() {
 }
 
 void printMotionData() {
+
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
-  //Serial.print(frameTotal);
-  //Serial.print("Acceleration X: ");
-  Serial.println(xAcceleration);
-  currentFile.println(xAcceleration);
-  //Serial.print(", Y: ");
-  Serial.println(yAcceleration);
-  currentFile.println(yAcceleration);
-  //Serial.print(", Z: ");
-  if (a.acceleration.z < -gravityConst) {
-    Serial.println(zAcceleration + gravityConst);
-    currentFile.println(zAcceleration + gravityConst);
-  } else {
-    Serial.println(zAcceleration - gravityConst);
-    currentFile.println(zAcceleration - gravityConst);
-  }
 
-  //Serial.println(" m/s^2");
-
-  //Serial.print("Rotation X: ");
-  Serial.println(xGyro - gyroXOffset);
-  currentFile.println(xGyro - gyroXOffset);
-  //Serial.print(", Y: ");
-  Serial.println(yGyro - gyroYOffset);
-  currentFile.println(yGyro - gyroYOffset);
-  //Serial.print(", Z: ");
-  Serial.println(zGyro - gyroZOffset);
-  currentFile.println(zGyro - gyroZOffset);
-  //Serial.println(" rad/s");
-  //Serial.println();
-  //Serial.println();
-  //Serial.println();
-  //Serial.println();
+  csvString = String(xAcceleration) + "," + String(yAcceleration) + "," + String(zAcceleration) + "," + String((xGyro - gyroXOffset)) + "," + String((yGyro - gyroYOffset)) + "," + String((zGyro - gyroZOffset));
+  currentFile.println(csvString);
+  Serial.println("logged motion data");
   
 }
 
@@ -412,14 +411,14 @@ gyroZOffset = sumZ/numPoints;
 normalScreen = true;
 }
 
-void findFileName (File dir) {
+void findFileName () {
   lazyCounter = 0;
   while (true) {
-    String filename = "/" + String(lazyCounter);
+    String filename = "/" + String(lazyCounter) + ".csv";
 
     if (!SD.exists(filename)) {
-      currentFile = SD.open(filename, FILE_WRITE);
-      break;
+      currentFile = SD.open(filename + ".csv", FILE_WRITE);
+      break;           
     }
 
     lazyCounter++;
