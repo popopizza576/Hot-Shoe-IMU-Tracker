@@ -7,7 +7,7 @@ So... you may ask yourself how do I use this thing? Well, in its current impleme
 
 Get a breadboard, and wire up an I2C OLED 0.91 inch screen, MPU 6050, SD card reader, and 3 buttons to an ESP32, then flash the firmware to it
 
-After that, you can record some motion data, which will print all of the values to a file without an extension in the root of the SD card. Make sure to format to FAT32, btw
+After that, you can record some motion data, which will print all of the values to a .csv file in the root of the SD card. Make sure to format to FAT32, btw
 
 Once you've done that, you can find the file path and paste it into the blender script where it says to put your file path, run the script, and that's where I'm at
 
