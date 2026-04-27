@@ -2,6 +2,7 @@ import bpy
 import math
 import sys
 import os
+import csv
 
 
 dir = os.path.dirname(bpy.data.filepath)
@@ -32,7 +33,7 @@ yRotation = 0
 zRotation = 0
 
 #sets the file path variable for the motion data log (very useful)
-filePath = "C:\\Users\\Porter\\Desktop\\hackclub\\blendertest\\april24test.txt"
+filePath = "C:\\Users\\Porter\\Desktop\\hackclub\\blendertest\\0.csv"
 
 #the movement data goes in this order:
 #1. x acceleration
@@ -41,6 +42,13 @@ filePath = "C:\\Users\\Porter\\Desktop\\hackclub\\blendertest\\april24test.txt"
 #4. x gyro
 #5. y gyro
 #6. z gyro
+
+xList = []
+yList = []
+zList = []
+xGyroList = []
+yGyroList = []
+zGyroList = []
 
 #sets starting positions
 cam.location.x = 0
@@ -64,8 +72,18 @@ cam.rotation_euler.z = cam.rotation_euler.z + (zRotation * timePerFrame)
 
 #parses the data log and appends it to a list, as well as making a variable with the amount of frames the animation should have (arguably most important part of the whole script)
 with open(filePath, 'r') as file:
-    pointList = file.readlines()
-    frameAmount = len(pointList) / 6
+    csvreader = csv.reader(file, delimiter=',')
+    frameAmount = 0
+    for row in csvreader:
+        print(row)
+        xList.append(row[0])
+        yList.append(row[1])
+        zList.append(row[2])
+        xGyroList.append(row[3])
+        yGyroList.append(row[4])
+        zGyroList.append(row[5])
+        frameAmount += 1
+        
     print(frameAmount)
    
    
@@ -76,13 +94,13 @@ bpy.context.scene.frame_end = int(frameAmount)
 
 #runs through and adds keyframes to the animation with the location from the log parse
 for i in range(0, int(frameAmount)):
-    currentLine = i * 6
-    xAcceleration = float(pointList[currentLine - 1])
-    yAcceleration = float(pointList[(currentLine - 1) + 1])
-    zAcceleration = float(pointList[(currentLine - 1) + 2])
-    xRotation = float(pointList[(currentLine - 1) + 3])
-    yRotation = float(pointList[(currentLine - 1) + 4])
-    zRotation = float(pointList[(currentLine - 1) + 5])
+    currentLine = i
+    xAcceleration = float(xList[i])
+    yAcceleration = float(yList[i])
+    zAcceleration = float(zList[i])
+    xRotation = float(xGyroList[i])
+    yRotation = float(yGyroList[i])
+    zRotation = float(zGyroList[i])
     cam.location.x = cam.location.x + xAcceleration
     cam.location.y = cam.location.y + yAcceleration
     cam.location.z = cam.location.z + zAcceleration
@@ -95,9 +113,5 @@ for i in range(0, int(frameAmount)):
     print(currentLine)
     cam.keyframe_insert("location", frame=i)
     cam.keyframe_insert("rotation_euler", frame=i)
-    
-    
-    
-
     
     
