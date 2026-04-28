@@ -3,6 +3,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#include <Adafruit_BNO08x.h>
 //file system
 #include "FS.h"
 //sd card
@@ -10,8 +11,12 @@
 //serial
 #include "SPI.h"
 
+#define BNO08X_RESET -1
+
 //defines the motion tracker
 Adafruit_MPU6050 mpu;
+Adafruit_BNO08x  bno08x(BNO08X_RESET);
+sh2_SensorValue_t sensorValue;
 
 //defines file (test)
 File currentFile;
@@ -108,13 +113,22 @@ void setup() {
 
 
     //initialize motion tracker
-    if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
+    //if (!mpu.begin()) {
+    //Serial.println("Failed to find MPU6050 chip");
+    //while (1) {
+    //  delay(10);
+    //}
+  ///}
+  //Serial.println("MPU6050 Found!");
+
+
+  if (!bno08x.begin_I2C()) { // Start the sensor using I2C
+    Serial.println("Failed to find BNO08x chip");
+    while (1) { delay(10); }
   }
-  Serial.println("MPU6050 Found!");
+  Serial.println("BNO08x Found!");
+
+  setReports();
 
   // set accelerometer range to +-8G
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
@@ -143,6 +157,21 @@ void setup() {
     display.display(); // Show text on screen
 }
 
+
+void setReports(void) {
+  Serial.println("Setting desired reports");
+
+   if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION, 10000)) {
+    Serial.println("Could not enable linear accel");
+  }
+
+  if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED, 10000)) {
+    Serial.println("Could not enable gyro");
+  }
+}
+
+
+
 void loop() {
 
     //declaring stuff
@@ -156,13 +185,20 @@ void loop() {
 
     //buttons
     if (startButtonState == HIGH) {
-      delay(100);
-      msSinceOn = msTimeTrack;
-      elapsed = msTimeTrack - msSinceOn;
-      secTrackInt = elapsed;
-      timecodeRunning = true;
-      Serial.println(msSinceOn);
-      findFileName();
+      while (true) {
+
+      startButtonState = digitalRead(startButtonPin);
+        if (startButtonState == LOW) {
+          msSinceOn = msTimeTrack;
+          elapsed = msTimeTrack - msSinceOn;
+          secTrackInt = elapsed;
+          timecodeRunning = true;
+          Serial.println(msSinceOn);
+          findFileName();
+          break;
+        }
+      }
+
 
     }
 
@@ -193,7 +229,8 @@ void loop() {
     updateTimeCodeString();
 
     //updates the motion tracking variables for the mpu6050 (i wanna switch to bno085)
-    mpu6050Update();
+    //mpu6050Update();
+    bno085Update();
     
     if (calibrateButtonState == true) {
       normalScreen = false;
@@ -332,10 +369,39 @@ void mpu6050Update() {
   zGyro = g.gyro.z;
 }
 
+void bno085Update() {
+
+  if (bno08x.wasReset()) {
+    Serial.println("sensor reset");
+    setReports();
+  }
+
+  while (bno08x.getSensorEvent(&sensorValue)) {
+
+    switch (sensorValue.sensorId) {
+
+      case SH2_LINEAR_ACCELERATION:
+        xAcceleration = sensorValue.un.linearAcceleration.x;
+        yAcceleration = sensorValue.un.linearAcceleration.y;
+        zAcceleration = sensorValue.un.linearAcceleration.z;
+        break;
+
+      case SH2_GYROSCOPE_CALIBRATED:
+        xGyro = sensorValue.un.gyroscope.x;
+        yGyro = sensorValue.un.gyroscope.y;
+        zGyro = sensorValue.un.gyroscope.z;
+        break;
+
+    }
+  }
+
+  //csvString = String(xAcceleration) + "," + String(yAcceleration) + "," + String(zAcceleration) + "," + String((xGyro - gyroXOffset)) + "," + String((yGyro - gyroYOffset)) + "," + String((zGyro - gyroZOffset));
+  //Serial.println(csvString);
+
+}
+
 void printMotionData() {
 
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
 
   csvString = String(xAcceleration) + "," + String(yAcceleration) + "," + String(zAcceleration) + "," + String((xGyro - gyroXOffset)) + "," + String((yGyro - gyroYOffset)) + "," + String((zGyro - gyroZOffset));
   currentFile.println(csvString);
@@ -417,7 +483,7 @@ void findFileName () {
     String filename = "/" + String(lazyCounter) + ".csv";
 
     if (!SD.exists(filename)) {
-      currentFile = SD.open(filename + ".csv", FILE_WRITE);
+      currentFile = SD.open(filename, FILE_WRITE);
       break;           
     }
 
