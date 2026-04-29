@@ -4,6 +4,9 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO08x.h>
+//something for sleep mode i think
+#include "driver/rtc_io.h"
+#include "esp_sleep.h"
 //file system
 #include "FS.h"
 //sd card
@@ -28,6 +31,7 @@ File currentFile;
 #define SD_MISO     5
 #define SD_SCLK     4
 #define SD_CS       7
+#define WAKEUP_GPIO GPIO_NUM_2
 
 // Initialize OLED display (I2C address 0x3C)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -38,8 +42,9 @@ int minutesTC = 00;
 int secondsTC = 00;
 int framesTC = 00;
 String fullTimeCodeString = "placeholder";
-int framerate = 24;
+int framerateSelector = 0;
 int commonFramerates[] = {24, 30, 60, 120};
+int framerate = commonFramerates[framerateSelector];
 int frameDelay = 1000 / framerate;
 unsigned long msTimeTrack;
 int frameTrackInt = frameDelay;
@@ -48,8 +53,9 @@ int startButtonState = 0;
 int startButtonPin = 0;
 int stopButtonState = 0;
 int stopButtonPin = 1;
-int calibrateButtonPin = 2;
-int calibrateButtonState = 0;
+int powerButtonPin = 2;
+int powerButtonState = 0;
+int powerRailPin = 3;
 int timecodeRunning = 0;
 int recordDisplay = 0;
 int recBlinkMs = 0;
@@ -73,9 +79,15 @@ unsigned long elapsed = 0;
 String csvString;
 
 void setup() {
+    pinMode(powerRailPin, OUTPUT);
+    digitalWrite(powerRailPin, HIGH);
     Serial.begin(115200);
     delay(1000);
     Serial.println("Booted");
+
+      esp_deep_sleep_enable_gpio_wakeup(1 << WAKEUP_GPIO, ESP_GPIO_WAKEUP_GPIO_HIGH);
+
+
 
     //set pin modes
     pinMode(startButtonPin, INPUT);
@@ -179,7 +191,7 @@ void loop() {
     elapsed = msTimeTrack - msSinceOn;
     startButtonState = digitalRead(startButtonPin);
     stopButtonState = digitalRead(stopButtonPin);
-    calibrateButtonState = digitalRead(calibrateButtonPin);
+    powerButtonState = digitalRead(powerButtonPin);
 
     
 
@@ -188,6 +200,9 @@ void loop() {
       while (true) {
 
       startButtonState = digitalRead(startButtonPin);
+      stopButtonState = digitalRead(stopButtonPin);
+
+
         if (startButtonState == LOW) {
           msSinceOn = msTimeTrack;
           elapsed = msTimeTrack - msSinceOn;
@@ -196,6 +211,21 @@ void loop() {
           Serial.println(msSinceOn);
           findFileName();
           break;
+        }
+
+        if(stopButtonState == HIGH) {
+          //framerate change
+
+          delay(100);
+
+          if (framerateSelector >= 3) {
+            framerateSelector = 0;
+          } else {
+            framerateSelector++;
+          }
+          framerate = commonFramerates[framerateSelector];
+          break;
+
         }
       }
 
@@ -232,10 +262,12 @@ void loop() {
     //mpu6050Update();
     bno085Update();
     
-    if (calibrateButtonState == true) {
-      normalScreen = false;
+    if (powerButtonState == true) {
+      digitalWrite(powerRailPin, LOW);
       delay(500);
-      calibrateGyro();
+      esp_deep_sleep_start();
+
+
     }
 
     // updating the display stuff
