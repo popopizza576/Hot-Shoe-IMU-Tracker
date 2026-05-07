@@ -11,7 +11,7 @@ The Hot IMU is also incredibly affordable compared to the current Vive-tracker-b
 The Hot IMU is a compact ESP-32c3-based device, with a BNO085 IMU and OLED screen. The IMU and OLED screen mount to the PCB with breadboard pins. The battery mounts using a JST 2-pin 1.5mm connector.
 <img width="1442" height="720" alt="Screenshot 2026-05-06 235348" src="https://github.com/user-attachments/assets/4f673a5f-4457-492b-acab-eb5d2e58b116" />
 
-# USAGE
+# Usage
 The Hot IMU records movement data to the SD card in CSV format. It records one frame of motion data per frame, and the framerate is specified on the OLED screen.
 
 You can change the framerate by holding down the GO button and pressing the STOP button. The built-in framerates are 24, 30, 60, and 120. the default framerate is 24.
