@@ -21,3 +21,4 @@ After you've got your CSV file of the motion data recorded, you need to create a
 The Blender Script will parse through the motion data and create an animation of the length of the duration of the data you recorded, then it creates 1 frame of animation for every frame and maps your camera movement to the motion capture.
 
 After you render your Blender animation, just sync up your animation and footage from your camera in your editing software of choice, and key out the background!
+<img width="1371" height="676" alt="Screenshot 2026-05-06 235805" src="https://github.com/user-attachments/assets/fe465661-1633-49ed-b4d7-f0ed2e90a645" />
