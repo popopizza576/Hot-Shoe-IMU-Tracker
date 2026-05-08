@@ -10,11 +10,11 @@ The Hot IMU is also incredibly affordable compared to the current Vive-tracker-b
 # Assembly
 The Hot IMU is a compact ESP-32c3-based device, with a BNO085 IMU and OLED screen. The IMU and OLED screen mount to the PCB with breadboard pins. The battery mounts using a JST 2-pin 1.5mm connector.
 
-## PCB
+### PCB
 
 <img width="1442" height="720" alt="Screenshot 2026-05-06 235348" src="https://github.com/user-attachments/assets/4f673a5f-4457-492b-acab-eb5d2e58b116" />
 
-## Schematic
+### Schematic
 
 <img width="1395" height="568" alt="Screenshot 2026-05-08 005708" src="https://github.com/user-attachments/assets/7cb6f70e-37ae-472f-b768-d3b1ab18f5b9" />
 
