@@ -39,7 +39,7 @@ yRotation = 0
 zRotation = 0
 
 #sets the file path variable for the motion data log (very useful)
-filePath = "C:\\Users\\Porter\\Desktop\\hackclub\\blendertest\\0.csv"
+filePath = "C:\\Users\\Porter\\Desktop\\hackclub\\blendertest\\1.csv"
 
 #the movement data goes in this order:
 #1. x acceleration
@@ -114,7 +114,7 @@ for i in range(0, int(frameAmount)):
     #cam.location.y += velocityY * timePerFrame
     #cam.location.z += velocityZ * timePerFrame
     cam.rotation_euler.x = cam.rotation_euler.x + (xRotation * timePerFrame)
-    cam.rotation_euler.y = cam.rotation_euler.y + (yRotation * timePerFrame)
+    cam.rotation_euler.y = cam.rotation_euler.y - (yRotation * timePerFrame)
     cam.rotation_euler.z = cam.rotation_euler.z + (zRotation * timePerFrame)
     print(currentLine)
     cam.keyframe_insert("location", frame=i)
