@@ -38,6 +38,7 @@ The second BOM is a list of all additional components you need to buy in order t
 **PLEASE NOTE**
 
 In addition to purchasing the parts from the BOM, you must have access to a 3D Printer to print the shell for this project.
+
 Also, note that you need to get a quote from a PCB manufacturer of your choosing. **YOU MUST PURCHASE A PCB** The PCB is not included in either BOM.
 
 # Usage
